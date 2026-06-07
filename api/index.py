@@ -1,19 +1,16 @@
 from fastapi import FastAPI, Response
-from fastapi.middleware.cors import CORSMiddleware
 import json
 import os
 import numpy as np
 
 app = FastAPI()
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Expose-Headers": "Access-Control-Allow-Origin",
+}
 
 # Load telemetry data
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -26,24 +23,23 @@ with open(DATA_FILE, "r") as f:
 @app.options("/{path:path}")
 def options_handler(path: str):
     response = Response(status_code=200)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
+    for k, v in CORS_HEADERS.items():
+        response.headers[k] = v
     return response
 
 
 @app.get("/")
 def home(response: Response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
+    for k, v in CORS_HEADERS.items():
+        response.headers[k] = v
     return {"message": "Analytics API Running"}
 
 
 @app.post("/")
 def analytics(payload: dict, response: Response):
 
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
+    for k, v in CORS_HEADERS.items():
+        response.headers[k] = v
 
     regions = payload.get("regions", [])
     threshold = payload.get("threshold_ms", 180)
