@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 import json
 import os
@@ -6,11 +6,11 @@ import numpy as np
 
 app = FastAPI()
 
-# Enable CORS
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False,   # Changed
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -23,13 +23,27 @@ with open(DATA_FILE, "r") as f:
     telemetry = json.load(f)
 
 
+@app.options("/{path:path}")
+def options_handler(path: str):
+    response = Response(status_code=200)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
+
 @app.get("/")
-def home():
+def home(response: Response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
     return {"message": "Analytics API Running"}
 
 
 @app.post("/")
-def analytics(payload: dict):
+def analytics(payload: dict, response: Response):
+
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
 
     regions = payload.get("regions", [])
     threshold = payload.get("threshold_ms", 180)
@@ -37,7 +51,6 @@ def analytics(payload: dict):
     result = {}
 
     for region in regions:
-
         rows = [r for r in telemetry if r["region"] == region]
 
         if not rows:
@@ -50,9 +63,7 @@ def analytics(payload: dict):
             "avg_latency": round(sum(latencies) / len(latencies), 2),
             "p95_latency": round(float(np.percentile(latencies, 95)), 2),
             "avg_uptime": round(sum(uptimes) / len(uptimes), 3),
-            "breaches": sum(
-                1 for x in latencies if x > threshold
-            )
+            "breaches": sum(1 for x in latencies if x > threshold)
         }
 
     return result
